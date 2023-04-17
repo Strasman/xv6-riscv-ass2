@@ -55,5 +55,5 @@ struct kthread
 
   uint64 kstack;                // Virtual address of kernel stack
 
-  struct trapframe *trapframe;  W// data page for trampoline.S
+  struct trapframe *trapframe;  // data page for trampoline.S
 };
