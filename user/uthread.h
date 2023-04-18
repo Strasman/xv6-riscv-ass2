@@ -26,6 +26,7 @@ struct context {
     uint64 s11;
 };
 
+// Task 0 we can add filed
 struct uthread {
     char*               ustack[STACK_SIZE];  // the thread's stack
     enum tstate         state;          // FREE, RUNNING, RUNNABLE
