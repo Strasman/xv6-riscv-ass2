@@ -7,6 +7,7 @@
 #include "kernel/syscall.h"
 #include "kernel/memlayout.h"
 #include "kernel/riscv.h"
+#include "uthread.h"
 
 //
 // Tests xv6 system calls.  usertests without arguments runs them all
@@ -16,6 +17,8 @@
 // kernel printing usertrap messages, which can be ignored if test
 // prints "OK".
 //
+
+/* I added beacuse it's fail to make before we added the files!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #define BUFSZ  ((MAXOPBLOCKS+2)*BSIZE)
 
@@ -2571,6 +2574,94 @@ badarg(char *s)
   exit(0);
 }
 
+
+// starting the OS232 Assignment 2 simple tests
+
+volatile enum sched_priority x;
+
+
+void thread_a_start_func(void){
+  for(int i=0; i<10; i++){
+    sleep(10); // simulate work
+    x = uthread_get_priority();
+    if(x != LOW){
+      printf("uthread_get_priority failed\n");
+      exit(1);
+    }
+  }
+  uthread_exit();
+  printf("uthread_exit failed\n");
+  exit(1);
+}
+
+void thread_b_start_func(void){
+  for(int i=0; i<10; i++){
+    sleep(10); // simulate work
+    x = uthread_get_priority();
+    if(x != MEDIUM){
+      printf("uthread_get_priority failed\n");
+      exit(1);
+    }
+  }
+  uthread_exit();
+  printf("uthread_exit failed\n");
+  exit(1);
+}
+
+void ulttest()
+{
+  x = HIGH;
+  uthread_create(thread_a_start_func, LOW);
+  uthread_create(thread_b_start_func, MEDIUM);
+  uthread_start_all();
+  if(x != LOW){
+    printf("uthread_get_priority failed\n");
+    exit(1);
+  }
+  exit(0);
+}
+
+void thread_start_func(void){
+  for(int i=0; i<10; i++){
+    sleep(10); // simulate work
+  }
+  kthread_exit(0);
+  printf("kthread_exit failed\n");
+  exit(1);
+}
+
+void klttest()
+{
+  uint64 stack_a = (uint64)malloc(MAX_STACK_SIZE);
+  uint64 stack_b = (uint64)malloc(MAX_STACK_SIZE);
+
+  int kt_a = kthread_create((void *(*)())thread_start_func, stack_a, MAX_STACK_SIZE);
+  if(kt_a <= 0){
+    printf("kthread_create failed\n");
+    exit(1);
+  }
+  int kt_b = kthread_create((void *(*)())thread_start_func, stack_b, MAX_STACK_SIZE);
+  if(kt_a <= 0){
+    printf("kthread_create failed\n");
+    exit(1);
+  }
+
+  int joined = kthread_join(kt_a, 0);
+  if(joined != 0){
+    printf("kthread_join failed\n");
+    exit(1);
+  }
+
+  joined = kthread_join(kt_b, 0);
+  if(joined != 0){
+    printf("kthread_join failed\n");
+    exit(1);
+  }
+
+  free((void *)stack_a);
+  free((void *)stack_b);
+}
+
 struct test {
   void (*f)(char *);
   char *s;
@@ -2635,6 +2726,8 @@ struct test {
   {sbrklast, "sbrklast"},
   {sbrk8000, "sbrk8000"},
   {badarg, "badarg" },
+  {ulttest, "ulttest"},
+  {klttest, "klttest"},
 
   { 0, 0},
 };
@@ -3099,3 +3192,5 @@ main(int argc, char *argv[])
   printf("ALL TESTS PASSED\n");
   exit(0);
 }
+
+*/
