@@ -37,7 +37,6 @@ kthreadinit(struct proc *p)
   release(&wait_lock);
 }
 
-
 struct kthread *
 mykthread() // ??
 {
@@ -49,15 +48,14 @@ mykthread() // ??
 }
 
 int
-  alloctid(struct proc *p){
-    int ktpid;
-    acquire(&p->ktidlock);
-    ktpid = p->ktidcounter ;
-    p->ktidcounter++;
-    release(&p->ktidlock);
-    return ktpid;
+alloctid(struct proc *p){
+  int ktpid;
+  acquire(&p->ktidlock);
+  ktpid = p->ktidcounter ;
+  p->ktidcounter++;
+  release(&p->ktidlock);
+  return ktpid;
   }
-
 
 struct kthread*
 allockthread(struct proc *p){
@@ -67,7 +65,7 @@ allockthread(struct proc *p){
   for (kt = p->kthread; kt < &p->kthread[NKT]; kt++)
   {
     acquire(&kt->ktlock);
-    if(kt->ktstate == UNUSED){
+    if(kt->ktstate == KTUNUSED){
       goto found;
     }
     else{

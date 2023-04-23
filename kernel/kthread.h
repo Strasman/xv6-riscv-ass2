@@ -51,17 +51,8 @@ struct trapframe {
   /* 280 */ uint64 t6;
 };
 
-// Per-CPU state.
-struct cpu {
-  struct kthread *kthread;          // The process running on this cpu, or null.
-  struct ktcontext ktcontext;     // swtch() here to enter scheduler().
-  int noff;                   // Depth of push_off() nesting.
-  int intena;                 // Were interrupts enabled before push_off()?
-};
 
-extern struct cpu cpus[NCPU];
-
-struct ktcontext {
+struct context {
   uint64 ra;
   uint64 sp;
 
@@ -80,7 +71,20 @@ struct ktcontext {
   uint64 s11;
 };
 
-enum ktstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+
+// Per-CPU state.
+struct cpu {
+  struct kthread *kthread;          // The process running on this cpu, or null.
+  struct context ktcontext;     // swtch() here to enter scheduler().
+  int noff;                   // Depth of push_off() nesting.
+  int intena;                 // Were interrupts enabled before push_off()?
+};
+
+extern struct cpu cpus[NCPU];
+
+
+
+enum ktstate { KTUNUSED, KTUSED, KTSLEEPING, KTRUNNABLE, KTRUNNING, KTZOMBIE };
 
 struct kthread
 {
@@ -95,5 +99,5 @@ struct kthread
   int ktxstate;                   // Exit status to be returned to parent's wait
   int ktid;                       // thread ID
   struct proc *proc;              // process of the thread
-  struct ktcontext ktcontext;         // swtch() here to run thread
+  struct context ktcontext;         // swtch() here to run thread
 };

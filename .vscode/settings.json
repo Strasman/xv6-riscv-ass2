@@ -6,6 +6,7 @@
         "param.h": "c",
         "memlayout.h": "c",
         "spinlock.h": "c",
-        "proc.h": "c"
+        "proc.h": "c",
+        "stat.h": "c"
     },
 }
