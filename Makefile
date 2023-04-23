@@ -88,7 +88,7 @@ $U/initcode: $U/initcode.S
 tags: $(OBJS) _init
 	etags *.S *.c
 
-ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o $U/uswtch.o $U/_uthread.o
+ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o $U/uswtch.o $U/uthread.o
 
 _%: %.o $(ULIB)
 	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
@@ -132,6 +132,7 @@ UPROGS=\
 	$U/_grind\
 	$U/_wc\
 	$U/_zombie\
+	$U/_t_1.2\
 	#$U/_usertests\
 	
 

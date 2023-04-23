@@ -1,3 +1,4 @@
+#include "kernel/types.h"
 #define STACK_SIZE  4000
 #define MAX_UTHREADS  4
 
@@ -28,7 +29,7 @@ struct context {
 
 // Task 0 we can add filed
 struct uthread {
-    char*               ustack[STACK_SIZE];  // the thread's stack
+    char               ustack[STACK_SIZE];  // the thread's stack
     enum tstate         state;          // FREE, RUNNING, RUNNABLE
     struct context      context;        // uswtch() here to run process
     enum sched_priority priority;       // scheduling priority
@@ -46,3 +47,7 @@ enum sched_priority uthread_set_priority(enum sched_priority priority);
 enum sched_priority uthread_get_priority();
 
 struct uthread* uthread_self();
+
+struct uthread* max_priority_thread();
+
+int runnable_exists();
