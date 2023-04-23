@@ -124,6 +124,8 @@ allocproc(void)
   return 0;
 
 found:
+  p->ktidcounter=1;//Task 2.2
+  allockthread(p);
   p->pid = allocpid();
   p->state = USED;
 
@@ -150,8 +152,8 @@ found:
   p->context.sp = p->kstack + PGSIZE;
 
 
-  // TODO: delte this after you are done with task 2.2
-  allocproc_help_function(p);
+  // // TODO: delte this after you are done with task 2.2
+  // allocproc_help_function(p);
   return p;
 }
 
@@ -161,6 +163,11 @@ found:
 static void
 freeproc(struct proc *p)
 {
+  struct kthreads* kt;
+  for (kt = p->kthread; kt<p->kthread[NKT]; kt++){//Task 2.2
+    freekthread(kt);
+  }
+
   if(p->base_trapframes)
     kfree((void*)p->base_trapframes);
   p->base_trapframes = 0;
@@ -254,7 +261,9 @@ userinit(void)
 
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
-
+  //Task2.2
+  p->kthread[0].ktstate = RUNNABLE;
+  release(&p->kthread[0].ktlock);
   p->state = RUNNABLE;
 
   release(&p->lock);
@@ -302,6 +311,11 @@ fork(void)
     return -1;
   }
   np->sz = p->sz;
+
+  // do we need to acquire the wait_lock ??
+  acquire(&kt->tlock);
+  np->kthread[0] = *kt;
+  release(&kt->tlock);
 
   // copy saved user registers.
   *(np->kthread[0].trapframe) = *(kt->trapframe);
@@ -384,6 +398,13 @@ exit(int status)
 
   p->xstate = status;
   p->state = ZOMBIE;
+
+  for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++)
+  {
+    acquire(&kt->ktlock);
+    kt->ktstate = ZOMBIE;
+    release(&kt->ktlock);
+  }
 
   release(&wait_lock);
 
@@ -598,11 +619,14 @@ kill(int pid)
     acquire(&p->lock);
     if(p->pid == pid){
       p->killed = 1;
-      if(p->state == SLEEPING){
-        // Wake process from sleep().
-        p->state = RUNNABLE;
+      //Task 2.2
+      for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++){
+        acquire(&kt->ktlock);
+        if(kt->ktstate == SLEEPING){
+          kt->ktstate = RUNNABLE;
+        }
+        release(&kt->ktlock);
       }
-      release(&p->lock);
       return 0;
     }
     release(&p->lock);
@@ -668,9 +692,6 @@ procdump(void)
   static char *states[] = {
   [UNUSED]    "unused",
   [USED]      "used",
-  [SLEEPING]  "sleep ",
-  [RUNNABLE]  "runble",
-  [RUNNING]   "run   ",
   [ZOMBIE]    "zombie"
   };
   struct proc *p;

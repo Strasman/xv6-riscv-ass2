@@ -1,4 +1,5 @@
-
+#include "kernel/types.h"
+#include "param.h"
 // per-process data for the trap handling code in trampoline.S.
 // sits in a page by itself just under the trampoline page in the
 // user page table. not specially mapped in the kernel page table.
@@ -50,10 +51,49 @@ struct trapframe {
   /* 280 */ uint64 t6;
 };
 
+// Per-CPU state.
+struct cpu {
+  struct kthread *kthread;          // The process running on this cpu, or null.
+  struct ktcontext ktcontext;     // swtch() here to enter scheduler().
+  int noff;                   // Depth of push_off() nesting.
+  int intena;                 // Were interrupts enabled before push_off()?
+};
+
+extern struct cpu cpus[NCPU];
+
+struct ktcontext {
+  uint64 ra;
+  uint64 sp;
+
+  // callee-saved
+  uint64 s0;
+  uint64 s1;
+  uint64 s2;
+  uint64 s3;
+  uint64 s4;
+  uint64 s5;
+  uint64 s6;
+  uint64 s7;
+  uint64 s8;
+  uint64 s9;
+  uint64 s10;
+  uint64 s11;
+};
+
+enum ktstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+
 struct kthread
 {
 
   uint64 kstack;                // Virtual address of kernel stack
-
   struct trapframe *trapframe;  // data page for trampoline.S
+  //Task 2.1
+  struct spinlock ktlock;         // lock
+  enum ktstate ktstate;           // thread state
+  void *ktchan;                   // If non-zero, sleeping on chan
+  int ktkilled;                   // If non-zero, have been killed
+  int ktxstate;                   // Exit status to be returned to parent's wait
+  int ktid;                       // thread ID
+  struct proc *proc;              // process of the thread
+  struct ktcontext ktcontext;         // swtch() here to run thread
 };
