@@ -176,7 +176,7 @@ index 0000000..1f9d8a7
 +
 +  uint64 kstack;                // Virtual address of kernel stack
 +
-+  struct trapframe *trapframe;  W// data page for trampoline.S
++  struct trapframe *trapframe;  // data page for trampoline.S
 +};
 \ No newline at end of file
 diff --git a/kernel/memlayout.h b/kernel/memlayout.h

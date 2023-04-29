@@ -19,8 +19,10 @@ kthreadinit(struct proc *p)
   acquire(&wait_lock);
   acquire(&p->lock);
 
+  initlock(&p->ktidlock, "ktid_counter");
+
   for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++){
-    initlock(&kt->ktlock, "kthread_lock");
+    initlock(&kt->ktlock, "kthread_lock");//initializes for every thread in the process table its lock,
 
     acquire(&kt->ktlock); 
 
@@ -38,7 +40,7 @@ kthreadinit(struct proc *p)
 }
 
 struct kthread *
-mykthread() // ??
+mykthread() 
 {
   push_off();
   struct cpu *c = mycpu();
@@ -55,13 +57,13 @@ alloctid(struct proc *p){
   p->ktidcounter++;
   release(&p->ktidlock);
   return ktpid;
-  }
+}
 
 struct kthread*
 allockthread(struct proc *p){
-
   struct kthread *kt ;
 
+  //אולי צריך לנעול את הפרוסס??
   for (kt = p->kthread; kt < &p->kthread[NKT]; kt++)
   {
     acquire(&kt->ktlock);
@@ -77,9 +79,14 @@ allockthread(struct proc *p){
   found:
   kt->ktid = alloctid(p);
 
-  kt->ktstate = USED;
+  kt->ktstate = KTUSED;
 
-  kt->trapframe = get_kthread_trapframe(p, kt);
+  // Allocate a trapframe page.
+  if (!(kt->trapframe = get_kthread_trapframe(p, kt))){
+    freekthread(kt);
+    release(&kt->ktlock);
+    return 0;
+  }
 
   memset(&kt->ktcontext, 0, sizeof(kt->ktcontext));
   kt->ktcontext.ra = (uint64)forkret;
@@ -93,14 +100,15 @@ allockthread(struct proc *p){
 void
  freekthread(struct kthread *kt){
 
+  if(kt->trapframe)
+    kfree((void*)kt->trapframe);
   kt->ktid = 0;
   kt->ktchan = 0;
   kt->ktkilled = 0;
   kt->ktxstate = 0;
-  kt->proc = 0; // ??
-  kt->trapframe = 0; // ??
-  kt->kstack = 0; // do we need to free the stack?
-  kt->ktstate = UNUSED;
+  kt->proc = 0; 
+  kt->trapframe = 0; 
+  kt->ktstate = KTUNUSED;
   // what about the trapframe and the context?
 
  }
