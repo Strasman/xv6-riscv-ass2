@@ -22,7 +22,6 @@ initTableThreads(){
         memset(&newuthread->context, 0, sizeof(struct context));
         memset(&newuthread->ustack, 0, sizeof(STACK_SIZE));        
     } 
-
     inittable = 1;
 }
 
@@ -30,7 +29,7 @@ initTableThreads(){
 int 
 uthread_create(void (*start_func)() , enum sched_priority priority){
     
-    if (!inittable) initTableThreads();
+    if (inittable == 0) initTableThreads();
     
     struct uthread *t;
     //mabye need to put locks ??
@@ -43,7 +42,7 @@ uthread_create(void (*start_func)() , enum sched_priority priority){
             t->priority = priority; 
             t->state = RUNNABLE;
 
-            return 0;
+            return 0; // end
         }
     }
 
@@ -54,23 +53,22 @@ uthread_create(void (*start_func)() , enum sched_priority priority){
 void uthread_yield(){// אם אין לך טרד להחליף איתו ??
     struct uthread *yield_thread; // the thread that we want to yiled
     yield_thread = max_priority_thread(); //find the min prority thread
-    current_thread->state = FREE;
+    current_thread->state = RUNNABLE; // we chaenge from FREE to RUNNABLE ??
     yield_thread->state = RUNNING;
     uswtch(&current_thread->context , &yield_thread->context);// restore the context of the thread with the lowest priority  
 }
 
 //Task 1.2
 void uthread_exit(){
+    current_thread->state = FREE; 
 
     if (runnable_exists() == 0){ // When the last user thread in the process calls uthread_exit the process should terminate 
-        current_thread->state = FREE;
         exit(0);
     }
 
     struct uthread *switch_thread; // the thread that will take control
     switch_thread = max_priority_thread(); //find the min priority thread
     
-    current_thread->state = FREE; 
     switch_thread ->state = RUNNING;
     uswtch(&current_thread->context , &switch_thread->context);
 }
@@ -92,7 +90,7 @@ uthread_get_priority(){
 int
 uthread_start_all(){
     static int first = 1; //variable to check if the function called only once (from the main thread)
-    if(first){
+    if(first == 1){
         first = 0;
         struct uthread *start_thread; // the thread that will take control
         start_thread = max_priority_thread(); //find the min prority thread
@@ -104,25 +102,30 @@ uthread_start_all(){
 //Task 1.2
 struct uthread*
 uthread_self(){
-    //need to complite
     return current_thread;
 }
 
 
 
+
+
 //Task 1.2 help function 
 
-// void*
-// init_threads_fields(void *field, int c, uint size)// initialize the threads fields
-// {
-//   char *cfield = (char *) field;
-//   int i;
-//   for(i = 0; i < size; i++){
-//     cfield[i] = c;
-//   }
-//   return field;
-// }
-
+int
+sched_priority_num(enum sched_priority priority)
+{
+    if (priority == LOW){
+        return 0;
+    }
+    if (priority == MEDIUM){
+        return 1;
+    }
+    if (priority == HIGH){ 
+        return 2;
+    }
+    
+    return -1;
+}
 
 struct uthread*
 max_priority_thread(){
@@ -131,8 +134,9 @@ max_priority_thread(){
     int max_priority = 0; // max priority
 
     for (t = threads; t < &threads[MAX_UTHREADS]; t++ ){ // find the min thread in the thread table
-        if(t->state == RUNNABLE && t->priority > max_priority && t != current_thread){
-            max_priority = t->priority;
+        int priority = sched_priority_num(t->priority);
+        if(t->state == RUNNABLE && priority > max_priority && t != current_thread){
+            max_priority = priority;
             ret_thread = t;
         }
     }
@@ -152,3 +156,4 @@ runnable_exists(){
     }
     return exists;
 }
+
