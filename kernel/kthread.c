@@ -7,36 +7,32 @@
 #include "defs.h"
 
 extern struct proc proc[NPROC];
-extern struct spinlock wait_lock;
+//extern struct spinlock wait_lock; // ??
 extern void forkret(void);
 
 
 void 
 kthreadinit(struct proc *p)
 {
-
-
-  acquire(&wait_lock);
-  acquire(&p->lock);
-
+  //acquire(&wait_lock); // ?? --
+  //acquire(&p->lock);
   initlock(&p->ktidlock, "ktid_counter");
 
   for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++){
     initlock(&kt->ktlock, "kthread_lock");//initializes for every thread in the process table its lock,
 
-    acquire(&kt->ktlock); 
+    //acquire(&kt->ktlock); 
 
     kt->ktstate = UNUSED;
-    kt->proc = p;
     // WARNING: Don't change this line!
     // get the pointer to the kernel stack of the kthread
     kt->kstack = KSTACK((int)((p - proc) * NKT + (kt - p->kthread)));
 
-    release(&kt->ktlock);
+    //release(&kt->ktlock);
   }
 
-  release(&p->lock);
-  release(&wait_lock);
+  //release(&p->lock);
+  //release(&wait_lock); // ??
 }
 
 struct kthread *
@@ -53,7 +49,7 @@ int
 alloctid(struct proc *p){
   int ktpid;
   acquire(&p->ktidlock);
-  ktpid = p->ktidcounter ;
+  ktpid = p->ktidcounter;
   p->ktidcounter++;
   release(&p->ktidlock);
   return ktpid;
@@ -63,7 +59,6 @@ struct kthread*
 allockthread(struct proc *p){
   struct kthread *kt ;
 
-  //אולי צריך לנעול את הפרוסס??
   for (kt = p->kthread; kt < &p->kthread[NKT]; kt++)
   {
     acquire(&kt->ktlock);
@@ -82,7 +77,7 @@ allockthread(struct proc *p){
   kt->ktstate = KTUSED;
 
   // Allocate a trapframe page.
-  if (!(kt->trapframe = get_kthread_trapframe(p, kt))){
+  if ((kt->trapframe = get_kthread_trapframe(p, kt)) == 0){
     freekthread(kt);
     release(&kt->ktlock);
     return 0;
@@ -91,17 +86,16 @@ allockthread(struct proc *p){
   memset(&kt->ktcontext, 0, sizeof(kt->ktcontext));
   kt->ktcontext.ra = (uint64)forkret;
   kt->ktcontext.sp = kt->kstack + PGSIZE;
-
+  kt->proc = p;
 
   return kt;
-
   }
 
 void
  freekthread(struct kthread *kt){
 
-  if(kt->trapframe)
-    kfree((void*)kt->trapframe);
+  // if(kt->trapframe)
+  //   kfree((void*)kt->trapframe);
   kt->ktid = 0;
   kt->ktchan = 0;
   kt->ktkilled = 0;
@@ -109,8 +103,7 @@ void
   kt->proc = 0; 
   kt->trapframe = 0; 
   kt->ktstate = KTUNUSED;
-  // what about the trapframe and the context?
-
+  // what about the context?
  }
 
 struct trapframe *get_kthread_trapframe(struct proc *p, struct kthread *kt)

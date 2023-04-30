@@ -14,7 +14,6 @@ sys_exit(void)
   exit(n);
   return 0;  // not reached
 }
-
 uint64
 sys_getpid(void)
 {
