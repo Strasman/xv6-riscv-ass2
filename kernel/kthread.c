@@ -23,7 +23,7 @@ kthreadinit(struct proc *p)
 
     //acquire(&kt->ktlock); 
 
-    kt->ktstate = UNUSED;
+    kt->ktstate = KTUNUSED;
     // WARNING: Don't change this line!
     // get the pointer to the kernel stack of the kthread
     kt->kstack = KSTACK((int)((p - proc) * NKT + (kt - p->kthread)));
@@ -73,7 +73,6 @@ allockthread(struct proc *p){
   return 0;  
   found:
   kt->ktid = alloctid(p);
-
   kt->ktstate = KTUSED;
 
   // Allocate a trapframe page.
@@ -100,7 +99,7 @@ void
   kt->ktchan = 0;
   kt->ktkilled = 0;
   kt->ktxstate = 0;
-  kt->proc = 0; 
+  //kt->proc = 0; 
   kt->trapframe = 0; 
   kt->ktstate = KTUNUSED;
   // what about the context?

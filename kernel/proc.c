@@ -145,9 +145,6 @@ found:
     return 0;
   }
 
-  // acquire(&p->ktidlock);
-  // p->ktidcounter = 1;
-  // release(&p->ktidlock);
   p->ktidcounter = 0;
   allockthread(p);
 
@@ -405,6 +402,7 @@ exit(int status)
   {
     acquire(&kt->ktlock);
     kt->ktstate = KTZOMBIE;
+    //kt->ktkilled = 1;
     release(&kt->ktlock);
   }
 
@@ -414,6 +412,7 @@ exit(int status)
   // Jump into the scheduler, never to return.
   acquire(&mykthread()->ktlock);
   sched();
+
   panic("zombie exit");
 }
 
@@ -647,6 +646,7 @@ kill(int pid)
         acquire(&kt->ktlock);
         if(kt->ktstate == KTSLEEPING){
           kt->ktstate = KTRUNNABLE;
+          //kt->ktkilled = 1;
         }
         release(&kt->ktlock);
       }
