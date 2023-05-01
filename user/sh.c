@@ -58,13 +58,14 @@ void runcmd(struct cmd*) __attribute__((noreturn));
 void
 runcmd(struct cmd *cmd)
 {
+  printf("inside\n");
   int p[2];
   struct backcmd *bcmd;
   struct execcmd *ecmd;
   struct listcmd *lcmd;
   struct pipecmd *pcmd;
   struct redircmd *rcmd;
-
+  printf("inside cmd\n");
   if(cmd == 0)
     exit(1);
 
@@ -92,8 +93,11 @@ runcmd(struct cmd *cmd)
 
   case LIST:
     lcmd = (struct listcmd*)cmd;
-    if(fork1() == 0)
+    printf("user-mode - shel - LIST - befor if(fork1() == 0)\n");
+    if(fork1() == 0){
+      printf("user-mode - shel - LIST - after if(fork1() == 0)\n");
       runcmd(lcmd->left);
+    }
     wait(0);
     runcmd(lcmd->right);
     break;
@@ -102,14 +106,18 @@ runcmd(struct cmd *cmd)
     pcmd = (struct pipecmd*)cmd;
     if(pipe(p) < 0)
       panic("pipe");
+    printf("user-mode - shel - PIPE - 1 befor if(fork1() == 0)\n");
     if(fork1() == 0){
+      printf("user-mode - shel - PIPE - 1 after if(fork1() == 0)\n");
       close(1);
       dup(p[1]);
       close(p[0]);
       close(p[1]);
       runcmd(pcmd->left);
     }
+    printf("user-mode - shel - PIPE - 2 befor if(fork1() == 0)\n");
     if(fork1() == 0){
+      printf("user-mode - shel - PIPE - 2 after if(fork1() == 0)\n");
       close(0);
       dup(p[0]);
       close(p[0]);
@@ -124,8 +132,11 @@ runcmd(struct cmd *cmd)
 
   case BACK:
     bcmd = (struct backcmd*)cmd;
-    if(fork1() == 0)
+    printf("user-mode - shel - BACK - 1 befor if(fork1() == 0)\n");
+    if(fork1() == 0){
+      printf("user-mode - shel - BACK - 1 after if(fork1() == 0)\n");
       runcmd(bcmd->cmd);
+    }
     break;
   }
   exit(0);
@@ -147,7 +158,6 @@ main(void)
 {
   static char buf[100];
   int fd;
-
   // Ensure that three file descriptors are open.
   while((fd = open("console", O_RDWR)) >= 0){
     if(fd >= 3){
@@ -155,7 +165,6 @@ main(void)
       break;
     }
   }
-
   // Read and run input commands.
   while(getcmd(buf, sizeof(buf)) >= 0){
     if(buf[0] == 'c' && buf[1] == 'd' && buf[2] == ' '){
@@ -165,8 +174,12 @@ main(void)
         fprintf(2, "cannot cd %s\n", buf+3);
       continue;
     }
-    if(fork1() == 0)
+    printf("user-mode - shel - PIPE - 1 befor if(fork1() == 0)\n");
+    if(fork1() == 0){
+      printf("after fork\n");
       runcmd(parsecmd(buf));
+      printf("user-mode - shel - PIPE - 1 after if(fork1() == 0)\n");
+    }
     wait(0);
   }
   exit(0);
@@ -185,6 +198,7 @@ fork1(void)
   int pid;
 
   pid = fork();
+  printf("pids: %d",pid);
   if(pid == -1)
     panic("fork");
   return pid;
