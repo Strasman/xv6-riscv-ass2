@@ -185,7 +185,7 @@ fork1(void)
   int pid;
 
   pid = fork();
-  printf("pids: %d",pid);
+  //printf("pids: %d",pid);
   if(pid == -1)
     panic("fork");
   return pid;

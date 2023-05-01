@@ -402,7 +402,7 @@ exit(int status)
   {
     acquire(&kt->ktlock);
     kt->ktstate = KTZOMBIE;
-    //kt->ktkilled = 1;
+    kt -> ktkilled = 1;
     release(&kt->ktlock);
   }
 
@@ -661,8 +661,15 @@ kill(int pid)
 void
 setkilled(struct proc *p)
 {
+  //maybe need to change the order of locks here ??
   acquire(&p->lock);
   p->killed = 1;
+
+  for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++){
+    acquire(&kt->ktlock);
+    kt->ktkilled = 1;
+    release(&kt->ktlock);
+  }
   release(&p->lock);
 }
 
@@ -670,7 +677,6 @@ int
 killed(struct proc *p)
 {
   int k;
-  
   acquire(&p->lock);
   k = p->killed;
   release(&p->lock);
