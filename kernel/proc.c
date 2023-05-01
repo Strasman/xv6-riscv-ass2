@@ -405,6 +405,7 @@ exit(int status)
   {
     acquire(&kt->ktlock);
     kt->ktstate = KTZOMBIE;
+    kt->ktkilled = 1;
     release(&kt->ktlock);
   }
 
@@ -414,6 +415,7 @@ exit(int status)
   // Jump into the scheduler, never to return.
   acquire(&mykthread()->ktlock);
   sched();
+
   panic("zombie exit");
 }
 
@@ -647,6 +649,7 @@ kill(int pid)
         acquire(&kt->ktlock);
         if(kt->ktstate == KTSLEEPING){
           kt->ktstate = KTRUNNABLE;
+          kt->ktkilled = 1;
         }
         release(&kt->ktlock);
       }
