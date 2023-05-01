@@ -58,14 +58,12 @@ void runcmd(struct cmd*) __attribute__((noreturn));
 void
 runcmd(struct cmd *cmd)
 {
-  printf("inside\n");
   int p[2];
   struct backcmd *bcmd;
   struct execcmd *ecmd;
   struct listcmd *lcmd;
   struct pipecmd *pcmd;
   struct redircmd *rcmd;
-  printf("inside cmd\n");
   if(cmd == 0)
     exit(1);
 
@@ -93,9 +91,7 @@ runcmd(struct cmd *cmd)
 
   case LIST:
     lcmd = (struct listcmd*)cmd;
-    printf("user-mode - shel - LIST - befor if(fork1() == 0)\n");
     if(fork1() == 0){
-      printf("user-mode - shel - LIST - after if(fork1() == 0)\n");
       runcmd(lcmd->left);
     }
     wait(0);
@@ -106,18 +102,14 @@ runcmd(struct cmd *cmd)
     pcmd = (struct pipecmd*)cmd;
     if(pipe(p) < 0)
       panic("pipe");
-    printf("user-mode - shel - PIPE - 1 befor if(fork1() == 0)\n");
     if(fork1() == 0){
-      printf("user-mode - shel - PIPE - 1 after if(fork1() == 0)\n");
       close(1);
       dup(p[1]);
       close(p[0]);
       close(p[1]);
       runcmd(pcmd->left);
     }
-    printf("user-mode - shel - PIPE - 2 befor if(fork1() == 0)\n");
     if(fork1() == 0){
-      printf("user-mode - shel - PIPE - 2 after if(fork1() == 0)\n");
       close(0);
       dup(p[0]);
       close(p[0]);
@@ -132,9 +124,7 @@ runcmd(struct cmd *cmd)
 
   case BACK:
     bcmd = (struct backcmd*)cmd;
-    printf("user-mode - shel - BACK - 1 befor if(fork1() == 0)\n");
     if(fork1() == 0){
-      printf("user-mode - shel - BACK - 1 after if(fork1() == 0)\n");
       runcmd(bcmd->cmd);
     }
     break;
@@ -174,11 +164,8 @@ main(void)
         fprintf(2, "cannot cd %s\n", buf+3);
       continue;
     }
-    printf("user-mode - shel - PIPE - 1 befor if(fork1() == 0)\n");
     if(fork1() == 0){
-      printf("after fork\n");
       runcmd(parsecmd(buf));
-      printf("user-mode - shel - PIPE - 1 after if(fork1() == 0)\n");
     }
     wait(0);
   }

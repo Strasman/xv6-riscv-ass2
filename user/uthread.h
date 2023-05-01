@@ -48,6 +48,4 @@ enum sched_priority uthread_get_priority();
 
 struct uthread* uthread_self();
 
-struct uthread* max_priority_thread();
 
-int runnable_exists();
