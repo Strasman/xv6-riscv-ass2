@@ -111,17 +111,17 @@ struct trapframe *get_kthread_trapframe(struct proc *p, struct kthread *kt)
 }
 
 //Task 2.3
-int kthread_create( void *(*start_func)(), void *stack, uint stack_size ){
+int kthread_create( uint64 start_func, uint64 stack, uint stack_size ){
   struct proc* p = myproc();
   struct kthread* kt = allockthread(p);
   if(kt == 0){  
     return -1;
   }
-
+  *(kt->trapframe) = *(mykthread()->trapframe);
   kt->ktstate = KTRUNNABLE;
-  kt->trapframe->epc = (uint64)start_func;
-  kt->trapframe->sp = (uint64)stack + stack_size;
-
+  kt->trapframe->epc = start_func;
+  kt->trapframe->sp = stack + stack_size;
+  release(&kt->ktlock);
   return kt->ktid;
 }
 
@@ -149,34 +149,114 @@ int kthread_kill(int ktid){
 }
 
 void kthread_exit(int status){
-  struct kthread* kt=mykthread();
-
+  struct kthread *kt = mykthread();
+  
+  if (the_only_one(kt)){
+    exit(status);
+  }
   acquire(&kt->ktlock);
   kt->ktstate=KTZOMBIE;
   kt->ktxstate=status;
-  wakeup(kt);
   release(&kt->ktlock);
+  wakeup(&kt->ktchan);
+  
+  acquire(&kt->ktlock);
+  // Jump into the scheduler, never to return.
+  sched();
+
+  panic("zombie exit - kthread");
 }
 
-int kthread_join(int ktid, int *status){
-  struct proc* p = myproc();
-  struct kthread* kt;
+int kthread_join(int ktid, uint64 status){
+  struct kthread *tt;
+  struct kthread *waitingfor = 0;
+  int otherthreads;
+  struct proc *p = myproc();
 
+  acquire(&p->lock);
 
-  for (kt = p->kthread; kt < &p->kthread[NKT]; kt++){
-    acquire(&kt->ktlock);
-    if(kt->ktid == ktid){
-
-      if(kt->ktstate != KTZOMBIE){
-        sleep(kt, &p->lock);
+  for(;;){
+    // Scan through table looking for exited children.
+    otherthreads = 0;
+    for(tt = p->kthread; tt < &p->kthread[NKT]; tt++){
+      acquire(&tt->ktlock);
+      if(tt->ktid == ktid && tt->ktstate != KTUNUSED){
+        waitingfor = tt;
+        otherthreads = 1;
+        if(tt->ktstate == KTZOMBIE){
+          if(status != 0 && copyout(p->pagetable, status, (char *)&tt->ktxstate,
+                                  sizeof(tt->ktxstate)) < 0) {
+            release(&tt->ktlock);
+            release(&p->lock);
+            return -1;
+        }
+        freekthread(tt);
+        release(&tt->ktlock);
+        release(&p->lock);
+        return 0; 
       }
+    }
+    release(&tt->ktlock);
+  }
+    // No point waiting if we don't have any children.
+    if(!otherthreads || mykthread()->ktkilled ==1){
+      release(&p->lock);
+      return -1;
+    }
+    
+    // Wait for a child to exit.
+    sleep(waitingfor, &p->lock);  //DOC: wait-sleep
+  }
+}
 
-      status = &kt->ktxstate;
 
-      release(&kt->ktlock);
+  // struct proc* p = myproc();
+  // struct kthread* kt;
+
+  // //acquire(&p->lock);
+  //   for(kt = p->kthread; kt < &p->kthread[NPROC]; kt++){
+  //     acquire(&kt->ktlock);
+  //     if(kt != mykthread() && kt->ktid == ktid && kt->ktstate != KTUNUSED){
+  //       for(;;){
+  //         if(kt->ktstate == KTZOMBIE){
+  //           // Found it.
+  //           if(status != 0 && copyout(p->pagetable, *status, (char *)&kt->ktxstate,
+  //                                     sizeof(kt->ktxstate)) < 0) {
+  //               release(&kt->ktlock);
+  //               //release(&p->lock);
+  //               return -1;
+  //           }
+  //           freekthread(kt);
+  //           release(&kt->ktlock);
+  //           //release(&p->lock);
+  //           return 0;
+  //         }
+  //         else{
+  //           sleep(&kt->ktchan, &kt->ktlock);  //DOC: wait-sleep
+  //         }
+  //       }
+  //     }
+  //     release(&kt->ktlock);
+  //   }
+  //   //release(&p->lock);
+  //   return -1;
+  
+  
+
+int 
+the_only_one(struct kthread * t){
+  struct proc *p = t->proc;
+  struct kthread *kt;
+  acquire(&p->lock); // ??
+  for(kt=p->kthread; kt<&p->kthread[NKT]; kt++){
+    acquire(&kt->ktlock);
+    if(kt != t && (kt->ktstate != KTUNUSED || kt->ktstate != KTZOMBIE)){
       return 0;
     }
     release(&kt->ktlock);
-  } 
-  return -1;
+  }
+  release(&p->lock); // ??
+  return 1;
 }
+
+

@@ -98,7 +98,7 @@ sys_ktrhead_create(void)
   argaddr(0, &pf);
   argaddr(1, &ps);
   argint(2, &n);
-  return kthread_create((void*) (pf), &ps, n);
+  return kthread_create(pf, ps, n);
 }
 
 uint64
@@ -127,11 +127,11 @@ sys_kthread_exit(void)
 uint64
 sys_kthread_join(void)
 {
-  int n;
-  uint64 p;
-  argint(0, &n);
-  argaddr(1, &p);
-  return kthread_join(n, &p);
+  int ktid;
+  uint64 status;
+  argint(0, &ktid);
+  argaddr(1, &status);
+  return kthread_join(ktid, status);
 }
 
 

@@ -130,6 +130,21 @@ exec(char *path, char **argv)
   kt->trapframe->sp = sp; // initial stack pointer
   proc_freepagetable(oldpagetable, oldsz);
 
+
+  //Task 2.3
+  for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++){
+    if (kt != mykthread()){
+          int status = 1;
+          kthread_join(kt->ktid, (uint64)&status);
+        }
+  }
+
+  // for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++) {
+  //   acquire(&kt->ktlock);
+  //   freekthread(kt);
+  //   release(&kt->ktlock);
+  // }
+
   return argc; // this ends up in a0, the first argument to main(argc, argv)
 
  bad:
