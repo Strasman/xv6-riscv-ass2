@@ -301,8 +301,8 @@ fork(void)
 
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
-    freekthread(&np->kthread[0]); //!!!!!!!
     freeproc(np);
+    //freekthread(&np->kthread[0]); //!!!!!!! maybe over kill because we freed them in freeproc
     release(&np->lock);
     return -1;
   }
@@ -402,7 +402,6 @@ exit(int status)
   {
     acquire(&kt->ktlock);
     kt->ktstate = KTZOMBIE;
-    kt -> ktkilled = 1;
     release(&kt->ktlock);
   }
 
@@ -525,7 +524,7 @@ sched(void)
   //   panic("sched p->lock");
 
   if(!holding(&mykthread()->ktlock))
-    panic("sched p->lock");
+    panic("sched kt->lock");
   if(mycpu()->noff != 1)
     panic("sched locks");
 
@@ -665,11 +664,11 @@ setkilled(struct proc *p)
   acquire(&p->lock);
   p->killed = 1;
 
-  for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++){
-    acquire(&kt->ktlock);
-    kt->ktkilled = 1;
-    release(&kt->ktlock);
-  }
+  // for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++){
+  //   acquire(&kt->ktlock);
+  //   kt->ktkilled = 1;
+  //   release(&kt->ktlock);
+  // }
   release(&p->lock);
 }
 

@@ -118,12 +118,11 @@ struct trapframe*   get_kthread_trapframe(struct proc *, struct kthread *);
 int                 kthread_create( void *(*start_func)(), void *stack, uint stack_size );
 int                 kthread_id();
 int                 kthread_kill(int ktid);
-// void                kthread_exit(int status);
-// int                 kthread_join(int ktid, int *status);
+void                kthread_exit(int status);
+int                 kthread_join(int ktid, int *status);
 
 
-// TODO: delte this after you are done with task 2.2
-//void allocproc_help_function(struct proc *p);
+
 
 // swtch.S
 void            swtch(struct context*, struct context*);

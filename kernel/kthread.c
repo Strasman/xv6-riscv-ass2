@@ -148,35 +148,35 @@ int kthread_kill(int ktid){
     return -1;
 }
 
-// void kthread_exit(int status){
-//   struct kthread* kt=mykthread();
+void kthread_exit(int status){
+  struct kthread* kt=mykthread();
 
-//   acquire(&kt->ktlock);
-//   kt->ktstate=KTZOMBIE;
-//   kt->ktxstate=status;
-//   wakeup(kt);
-//   release(&kt->ktlock);
-// }
+  acquire(&kt->ktlock);
+  kt->ktstate=KTZOMBIE;
+  kt->ktxstate=status;
+  wakeup(kt);
+  release(&kt->ktlock);
+}
 
-// int kthread_join(int ktid, int *status){
-//   struct proc* p = myproc();
-//   struct kthread* kt;
+int kthread_join(int ktid, int *status){
+  struct proc* p = myproc();
+  struct kthread* kt;
 
 
-//   for (kt = p->kthread; kt < &p->kthread[NKT]; kt++){
-//     acquire(&kt->ktlock);
-//     if(kt->ktid == ktid){
+  for (kt = p->kthread; kt < &p->kthread[NKT]; kt++){
+    acquire(&kt->ktlock);
+    if(kt->ktid == ktid){
 
-//       if(kt->ktstate != KTZOMBIE){
-//         sleep(kt, &p->lock);
-//       }
+      if(kt->ktstate != KTZOMBIE){
+        sleep(kt, &p->lock);
+      }
 
-//       status = &kt->ktxstate;
+      status = &kt->ktxstate;
 
-//       release(&kt->ktlock);
-//       return 0;
-//     }
-//     release(&kt->ktlock);
-//   } 
-//   return -1;
-// }
+      release(&kt->ktlock);
+      return 0;
+    }
+    release(&kt->ktlock);
+  } 
+  return -1;
+}
