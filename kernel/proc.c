@@ -378,7 +378,7 @@ exit(int status)
         int status;
         kthread_join(kt->ktid, (int *)&status);
       }
-    }
+    } 
 
     if(p == initproc)
       panic("init exiting");

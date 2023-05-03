@@ -108,19 +108,20 @@ int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
 
 // kthread.c
-void                kthreadinit(struct proc *);
+void                kthreadinit(struct proc *p);
 struct kthread*     mykthread();
-int                 alloctid(struct proc *);
-struct kthread*     allockthread(struct proc *);
-void                freekthread(struct kthread *);
-struct trapframe*   get_kthread_trapframe(struct proc *, struct kthread *);
+int                 alloctid(struct proc *p);
+struct kthread*     allockthread(struct proc *p);
+void                freekthread(struct kthread *kt);
+struct trapframe*   get_kthread_trapframe(struct proc *p, struct kthread *kt);
 //task 2.3
+int                 the_only_one(struct kthread * t);
 int                 kthread_create(uint64 (start_func)() , uint64 stack,uint stack_size);
 int                 kthread_id(void);
-int                 kthread_kill(int);
-void                kthread_exit(int);
-int                 kthread_join(int, int*);
-int                 the_only_one(struct kthread *);
+int                 kthread_kill(int ktid);
+void                kthread_exit(int status);
+int                 kthread_join(int ktid, int* status);
+
 
 
 

@@ -91,7 +91,7 @@ allockthread(struct proc *p){
   }
 
 void
- freekthread(struct kthread *kt){
+freekthread(struct kthread *kt){
 
   // if(kt->trapframe)
   //   kfree((void*)kt->trapframe);
@@ -105,13 +105,33 @@ void
   // what about the context?
  }
 
-struct trapframe *get_kthread_trapframe(struct proc *p, struct kthread *kt)
+struct trapframe *
+get_kthread_trapframe(struct proc *p, struct kthread *kt)
 {
   return p->base_trapframes + ((int)(kt - p->kthread));
 }
 
+
 //Task 2.3
-int kthread_create(uint64 (start_func)() , uint64 stack,uint stack_size){
+
+int 
+the_only_one(struct kthread * t){
+  struct proc *p = t->proc;
+  struct kthread *kt;
+  acquire(&p->lock); // ??
+  for(kt=p->kthread; kt<&p->kthread[NKT]; kt++){
+    acquire(&kt->ktlock);
+    if(kt != t && (kt->ktstate != KTUNUSED || kt->ktstate != KTZOMBIE)){
+      return 0;
+    }
+    release(&kt->ktlock);
+  }
+  release(&p->lock); // ??
+  return 1;
+}
+
+int 
+kthread_create(uint64 (start_func)() , uint64 stack, uint stack_size){
   struct proc* p = myproc();
   struct kthread* kt = allockthread(p);
   if(kt == 0){  
@@ -125,11 +145,13 @@ int kthread_create(uint64 (start_func)() , uint64 stack,uint stack_size){
   return kt->ktid;
 }
 
-int kthread_id(){ 
+int 
+kthread_id(){ 
   return mykthread()->ktid;
 }
 
-int kthread_kill(int ktid){
+int 
+kthread_kill(int ktid){
   struct kthread* kt;
   struct proc* p= myproc();
   for (kt = p->kthread; kt < &p->kthread[NKT]; kt++)
@@ -148,7 +170,8 @@ int kthread_kill(int ktid){
     return -1;
 }
 
-void kthread_exit(int status){
+void 
+kthread_exit(int status){
   struct kthread *kt = mykthread();
   
   if (the_only_one(kt)){
@@ -167,7 +190,8 @@ void kthread_exit(int status){
   panic("zombie exit - kthread");
 }
 
-int kthread_join(int ktid, int* status){
+int 
+kthread_join(int ktid, int* status){
   struct kthread *tt;
   struct kthread *waitingfor = 0;
   int otherthreads;
@@ -207,56 +231,6 @@ int kthread_join(int ktid, int* status){
     // Wait for a child to exit.
     sleep(waitingfor, &p->lock);  //DOC: wait-sleep
   }
-}
-
-
-  // struct proc* p = myproc();
-  // struct kthread* kt;
-
-  // //acquire(&p->lock);
-  //   for(kt = p->kthread; kt < &p->kthread[NPROC]; kt++){
-  //     acquire(&kt->ktlock);
-  //     if(kt != mykthread() && kt->ktid == ktid && kt->ktstate != KTUNUSED){
-  //       for(;;){
-  //         if(kt->ktstate == KTZOMBIE){
-  //           // Found it.
-  //           if(status != 0 && copyout(p->pagetable, *status, (char *)&kt->ktxstate,
-  //                                     sizeof(kt->ktxstate)) < 0) {
-  //               release(&kt->ktlock);
-  //               //release(&p->lock);
-  //               return -1;
-  //           }
-  //           freekthread(kt);
-  //           release(&kt->ktlock);
-  //           //release(&p->lock);
-  //           return 0;
-  //         }
-  //         else{
-  //           sleep(&kt->ktchan, &kt->ktlock);  //DOC: wait-sleep
-  //         }
-  //       }
-  //     }
-  //     release(&kt->ktlock);
-  //   }
-  //   //release(&p->lock);
-  //   return -1;
-  
-  
-
-int 
-the_only_one(struct kthread * t){
-  struct proc *p = t->proc;
-  struct kthread *kt;
-  acquire(&p->lock); // ??
-  for(kt=p->kthread; kt<&p->kthread[NKT]; kt++){
-    acquire(&kt->ktlock);
-    if(kt != t && (kt->ktstate != KTUNUSED || kt->ktstate != KTZOMBIE)){
-      return 0;
-    }
-    release(&kt->ktlock);
-  }
-  release(&p->lock); // ??
-  return 1;
 }
 
 
