@@ -69,7 +69,7 @@ allockthread(struct proc *p){
       release(&kt->ktlock);
     }
   }
-
+  printf("allocthread didnt find nada\n");
   return 0;  
   found:
   kt->ktid = alloctid(p);
@@ -118,15 +118,15 @@ int
 the_only_one(struct kthread * t){
   struct proc *p = t->proc;
   struct kthread *kt;
-  acquire(&p->lock); // ??
+  //acquire(&p->lock); // ??
   for(kt=p->kthread; kt<&p->kthread[NKT]; kt++){
-    acquire(&kt->ktlock);
+    //acquire(&kt->ktlock);
     if(kt != t && (kt->ktstate != KTUNUSED || kt->ktstate != KTZOMBIE)){
       return 0;
     }
-    release(&kt->ktlock);
+    //release(&kt->ktlock);
   }
-  release(&p->lock); // ??
+  //release(&p->lock); // ??
   return 1;
 }
 
@@ -135,6 +135,7 @@ kthread_create(uint64 (start_func)() , uint64 stack, uint stack_size){
   struct proc* p = myproc();
   struct kthread* kt = allockthread(p);
   if(kt == 0){  
+    printf("create kt=0 alloc thread fails");
     return -1;
   }
   *(kt->trapframe) = *(mykthread()->trapframe);
@@ -213,12 +214,12 @@ kthread_join(int ktid, int* status){
             release(&tt->ktlock);
             release(&p->lock);
             return -1;
+          }
+          freekthread(tt);
+          release(&tt->ktlock);
+          release(&p->lock);
+          return 0; 
         }
-        freekthread(tt);
-        release(&tt->ktlock);
-        release(&p->lock);
-        return 0; 
-      }
     }
     release(&tt->ktlock);
   }

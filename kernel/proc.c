@@ -146,7 +146,7 @@ found:
     return 0;
   }
 
-  p->ktidcounter = 0; // need to 1 ??
+  p->ktidcounter = 1; // need to 1 ??
   allockthread(p);
 
   // // TODO: delte this after you are done with task 2.2
@@ -618,9 +618,9 @@ wakeup(void *chan)
   
   for(p = proc; p < &proc[NPROC]; p++) {
     //if(p != myproc()){
-      acquire(&p->lock); // ??
+      //acquire(&p->lock); // ??
       if(p->state == USED){ // ??
-        release(&p->lock);// ??
+        //release(&p->lock);// ??
         for (kt = p->kthread; kt < &p->kthread[NKT]; kt++) {
           if(kt != mykthread()){
             acquire(&kt->ktlock);
@@ -632,7 +632,7 @@ wakeup(void *chan)
         }
       } // ??
       else{
-        release(&p->lock);// ??
+        //release(&p->lock);// ??
       }
   }
 }

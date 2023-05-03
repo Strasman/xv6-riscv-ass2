@@ -2630,28 +2630,34 @@ void klttest()
   uint64 stack_b = (uint64)malloc(MAX_STACK_SIZE);
 
   int kt_a = kthread_create((void *(*)())kthread_start_func, (void*)stack_a, MAX_STACK_SIZE);
-  printf("kt_a: %d", kt_a);
+  printf("kt_a: %d\n", kt_a);
   if(kt_a <= 0){
     printf("kthread_create failed\n");
     exit(1);
   }
+  printf("after kt_a\n");
+
   int kt_b = kthread_create((void *(*)())kthread_start_func, (void*)stack_b, MAX_STACK_SIZE);
+  printf("kt_b: %d\n", kt_b);
   if(kt_b <= 0){
     printf("kthread_create failed\n");
     exit(1);
   }
-
+  printf("after kt_b\n");
+  printf("mykthread id: %d\n",kthread_id());
   int joined = kthread_join(kt_a, 0);
   if(joined != 0){
     printf("kthread_join failed1\n");
     exit(1);
   }
+  printf("after join_kt_a\n");
 
   joined = kthread_join(kt_b, 0);
   if(joined != 0){
     printf("kthread_join failed2, joined = %d \n",joined);
     exit(1);
   }
+  printf("after join_kt_b\n");
 
   free((void *)stack_a);
   free((void *)stack_b);
@@ -2661,7 +2667,7 @@ struct test {
   void (*f)(char *);
   char *s;
 } quicktests[] = {
-  
+  {klttest, "klttest"},
   {copyin, "copyin"},
   {copyout, "copyout"},
   {copyinstr1, "copyinstr1"},
@@ -2723,7 +2729,7 @@ struct test {
   {sbrk8000, "sbrk8000"},
   {badarg, "badarg" },
   {ulttest, "ulttest"},
-  {klttest, "klttest"},
+  
   
 
   { 0, 0},
