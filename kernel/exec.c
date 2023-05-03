@@ -131,19 +131,16 @@ exec(char *path, char **argv)
   proc_freepagetable(oldpagetable, oldsz);
 
 
-  //Task 2.3
+  // Task 2.3 
+  // If all the exec code passed (we are beyond the point of failure)
+  //  all kernel threads, other than the one calling the function, should terminate.
+  //  Only after every other kernel thread terminated - kthread_join does that.
   for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++){
     if (kt != mykthread()){
           int status = 1;
           kthread_join(kt->ktid, (uint64)&status);
         }
   }
-
-  // for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++) {
-  //   acquire(&kt->ktlock);
-  //   freekthread(kt);
-  //   release(&kt->ktlock);
-  // }
 
   return argc; // this ends up in a0, the first argument to main(argc, argv)
 

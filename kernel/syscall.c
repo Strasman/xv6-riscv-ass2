@@ -109,6 +109,8 @@ extern uint64 sys_kthread_join(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
+// Task 2.3 
+// Added a few system calls of kthreads
 static uint64 (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,

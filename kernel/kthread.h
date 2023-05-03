@@ -1,5 +1,6 @@
 #include "kernel/types.h"
 #include "param.h"
+
 // per-process data for the trap handling code in trampoline.S.
 // sits in a page by itself just under the trampoline page in the
 // user page table. not specially mapped in the kernel page table.
@@ -51,7 +52,6 @@ struct trapframe {
   /* 280 */ uint64 t6;
 };
 
-
 struct context {
   uint64 ra;
   uint64 sp;
@@ -71,33 +71,30 @@ struct context {
   uint64 s11;
 };
 
-
-// Per-CPU state.
+// Per-CPU state - Task 2.1 Moved from proc.h
 struct cpu {
-  struct kthread *kthread;          // The process running on this cpu, or null.
+  struct kthread *kthread;      // The Thread running on this cpu, or null.
   struct context ktcontext;     // swtch() here to enter scheduler().
-  int noff;                   // Depth of push_off() nesting.
-  int intena;                 // Were interrupts enabled before push_off()?
+  int noff;                     // Depth of push_off() nesting.
+  int intena;                   // Were interrupts enabled before push_off()?
 };
 
 extern struct cpu cpus[NCPU];
 
-
-
 enum ktstate { KTUNUSED, KTUSED, KTSLEEPING, KTRUNNABLE, KTRUNNING, KTZOMBIE };
 
+//KTCB - Kernal Thread Control Block
 struct kthread
 {
-
-  uint64 kstack;                // Virtual address of kernel stack
-  struct trapframe *trapframe;  // data page for trampoline.S
-  //Task 2.1
-  struct spinlock ktlock;         // lock
-  enum ktstate ktstate;           // thread state
+  uint64 kstack;                  // Virtual address of kernel stack
+  struct trapframe *trapframe;    // data page for trampoline.S
+  // Task 2.1
+  struct spinlock ktlock;         // Kernal Thread lock
+  enum ktstate ktstate;           // Thread state
   void *ktchan;                   // If non-zero, sleeping on chan
   int ktkilled;                   // If non-zero, have been killed
-  int ktxstate;                   // Exit status to be returned to parent's wait
-  int ktid;                       // thread ID
-  struct proc *proc;              // process of the thread
-  struct context ktcontext;         // swtch() here to run thread
+  int ktxstate;                   // Exit status of the thread
+  int ktid;                       // Thread ID
+  struct proc *proc;              // Process of the thread
+  struct context ktcontext;       // swtch() here to run thread
 };

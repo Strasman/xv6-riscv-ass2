@@ -20,12 +20,12 @@ static void freeproc(struct proc *p);
 
 extern char trampoline[]; // trampoline.S
 
-// helps ensure that wakeups of wait()ing
+// Helps ensure that wakeups of wait()ing
 // parents are not lost. helps obey the
 // memory model when using p->parent.
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
-struct spinlock join;
+//struct spinlock join; // ??
 
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
@@ -46,15 +46,15 @@ proc_mapstacks(pagetable_t kpgtbl)
   }
 }
 
-// initialize the proc table.
+// Initialize the proc table.
 void
 procinit(void)
 {
   struct proc *p;
-  
   initlock(&wait_lock, "wait_lock");
-  initlock(&pid_lock, "nextpid"); // ??
-  initlock(&join, "join");
+  initlock(&pid_lock, "nextpid"); 
+  //initlock(&join, "join");
+
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
       p->state = UNUSED;
@@ -86,8 +86,6 @@ mycpu(void)
 struct proc*
 myproc(void)
 {
-  // struct kthread* kt = mykthread();
-  // return kt == 0 ? 0 : kt->proc;
   push_off();
   struct cpu *c = mycpu();
   struct proc *p = 0;
@@ -97,16 +95,15 @@ myproc(void)
   return p;
 }
 
+// Allocate a process ID
 int
 allocpid()
 {
   int pid;
-  
   acquire(&pid_lock);
   pid = nextpid;
   nextpid = nextpid + 1;
   release(&pid_lock);
-
   return pid;
 }
 
@@ -121,16 +118,14 @@ allocproc(void)
 
   for(p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
-    if(p->state == UNUSED) {
+    if(p->state == UNUSED) 
       goto found;
-    } else {
+    else 
       release(&p->lock);
-    }
   }
-  return 0;
+  return 0; // Not found an unused process
 
 found:
-  //Task 2.2
   p->pid = allocpid();
   p->state = USED;
 
@@ -148,12 +143,10 @@ found:
     release(&p->lock);
     return 0;
   }
-
-  p->ktidcounter = 1; // need to 1 ??
+  // Task 2.2
+  p->ktidcounter = 1; 
   allockthread(p);
 
-  // // TODO: delte this after you are done with task 2.2
-  // allocproc_help_function(p);
   return p;
 }
 
@@ -163,8 +156,6 @@ found:
 static void
 freeproc(struct proc *p)
 {
-
-
   if(p->base_trapframes)
     kfree((void*)p->base_trapframes);
   p->base_trapframes = 0;
@@ -179,8 +170,7 @@ freeproc(struct proc *p)
   p->xstate = 0;
   p->ktidcounter = 0;
   p->state = UNUSED;
-
-  //Task 2.2
+  // Task 2.2
   for(struct kthread* kt = p->kthread; kt<&p->kthread[NKT]; kt++){
     acquire(&kt->ktlock);
     freekthread(kt);
@@ -258,13 +248,14 @@ userinit(void)
   uvmfirst(p->pagetable, initcode, sizeof(initcode));
   p->sz = PGSIZE;
 
-  // prepare for the very first "return" from kernel to user.
+  // Task 2.2 
+  // Prepare for the very first "return" from kernel to user.
   p->kthread[0].trapframe->epc = 0;      // user program counter ?? 
   p->kthread[0].trapframe->sp = PGSIZE;  // user stack pointer ??
 
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
-  //Task2.2
+  // Task 2.2
   p->kthread[0].ktstate = KTRUNNABLE;
    
   release(&p->kthread[0].ktlock); 
@@ -278,7 +269,6 @@ growproc(int n)
 {
   uint64 sz;
   struct proc *p = myproc();
-
   sz = p->sz;
   if(n > 0){
     if((sz = uvmalloc(p->pagetable, sz, sz + n, PTE_W)) == 0) {
@@ -315,13 +305,13 @@ fork(void)
   }
   np->sz = p->sz;
 
-  // copy saved user registers.
+  // Copy saved user registers.
   *(np->kthread[0].trapframe) = *(kt->trapframe);
 
   // Cause fork to return 0 in the child.
   np->kthread[0].trapframe->a0 = 0;
 
-  // increment reference counts on open file descriptors.
+  // Increment reference counts on open file descriptors.
   for(i = 0; i < NOFILE; i++)
     if(p->ofile[i])
       np->ofile[i] = filedup(p->ofile[i]);
@@ -333,17 +323,16 @@ fork(void)
   release(&np->kthread[0].ktlock);
   release(&np->lock);
 
+  // Wait lock required when change parent of process
   acquire(&wait_lock);
   np->parent = p;
   release(&wait_lock);
 
-
-  acquire(&np->lock); // ??
+  acquire(&np->lock); // Not sure if must
 	acquire(&np->kthread[0].ktlock);
 	np->kthread[0].ktstate = KTRUNNABLE;
 	release(&np->kthread[0].ktlock);
-  release(&np->lock); // ??
-
+  release(&np->lock); 
 
   return pid;
 }
@@ -373,8 +362,9 @@ exit(int status)
   struct kthread *t = mykthread();
   int flag = 1;
 
-  //Task 2.3 - wait for all other threads to join (free them)
-  // mykthread isn't joining so we'll free him ar the end
+  // Task 2.3 
+  // Wait for all other threads to join (free them),
+  // Cuurent thread (mykthread) is not joining so we will free him at the end
   if(flag){
     for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++){
       if (kt != t){
@@ -413,8 +403,10 @@ exit(int status)
     release(&p->lock);
     release(&wait_lock);
 
+    // Acquire current thread before sched 
     acquire(&t->ktlock);
-    //Task 2.3 free our own thread
+    // Task 2.3 
+    // Free our own thread at the end
     freekthread(t);
     // Jump into the scheduler, never to return.
     sched();
@@ -497,18 +489,19 @@ scheduler(void)
       acquire(&p->lock); // ??
       if(p->state == USED){
         release(&p->lock); // ??
+
         for(struct kthread* kt = p->kthread; kt<&p->kthread[NKT]; kt++){
             acquire(&kt->ktlock);
             if(kt->ktstate == KTRUNNABLE) {
-              // Switch to chosen process.  It is the process's job
+              // Switch to chosen thread.  It is the thread's job
               // to release its lock and then reacquire it
               // before jumping back to us.
               kt->ktstate = KTRUNNING;
               c->kthread = kt;
               swtch(&c->ktcontext, &kt->ktcontext);
 
-              // (thread) Process is done running for now.
-              // It should have changed its p->state before coming back.
+              // Thread is done running for now.
+              // It should have changed its kt->ktstate before coming back.
               c->kthread = 0;
             }
             release(&kt->ktlock);
@@ -584,16 +577,14 @@ forkret(void)
 void
 sleep(void *chan, struct spinlock *lk)
 {
-  //struct proc *p = myproc(); // ??
   struct kthread *kt = mykthread(); 
-  // Must acquire p->lock in order to
-  // change p->state and then call sched.
-  // Once we hold p->lock, we can be
+  // Must acquire kt->lock in order to
+  // change kt->ktstate and then call sched.
+  // Once we hold kt->ktlock, we can be
   // guaranteed that we won't miss any wakeup
-  // (wakeup locks p->lock),
+  // (wakeup locks kt->lock),
   // so it's okay to release lk.
 
-  //acquire(&p->lock);  //DOC: sleeplock1 // ??
   acquire(&kt->ktlock);
   release(lk);
 
@@ -611,8 +602,8 @@ sleep(void *chan, struct spinlock *lk)
   acquire(lk);
 }
 
-// Wake up all processes sleeping on chan.
-// Must be called without any p->lock.
+// Wake up all Threads sleeping on chan.
+// Must be called without any kt->ktlock.
 void
 wakeup(void *chan)
 {
@@ -620,23 +611,21 @@ wakeup(void *chan)
   struct kthread *kt; 
   
   for(p = proc; p < &proc[NPROC]; p++) {
-    //if(p != myproc()){
-      acquire(&p->lock); // ??
-      if(p->state == USED){ // ??
-        release(&p->lock);// ??
-        for (kt = p->kthread; kt < &p->kthread[NKT]; kt++) {
-          if(kt != mykthread()){
-            acquire(&kt->ktlock);
-            if(kt->ktstate == KTSLEEPING && kt->ktchan == chan) {
-              kt->ktstate = KTRUNNABLE;
-            }
-            release(&kt->ktlock);
-          }
+    acquire(&p->lock); // ??
+    if(p->state == USED){ 
+      release(&p->lock);// ??
+      
+      for (kt = p->kthread; kt < &p->kthread[NKT]; kt++) {
+        if(kt != mykthread()){
+          acquire(&kt->ktlock);
+          if(kt->ktstate == KTSLEEPING && kt->ktchan == chan) 
+            kt->ktstate = KTRUNNABLE;    
+          release(&kt->ktlock);
         }
-      } // ??
-      else{
-        release(&p->lock);// ??
       }
+    } 
+    else
+      release(&p->lock);// ??
   }
 }
 
@@ -652,24 +641,24 @@ kill(int pid)
     acquire(&p->lock);
     if(p->pid == pid){
       p->killed = 1;
-      //Task 2.2
+      // Task 2.2
       for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++){
         if(kt != mykthread()){
           acquire(&kt->ktlock);
-          if(kt->ktstate == KTSLEEPING){
+          if(kt->ktstate == KTSLEEPING)
             kt->ktstate = KTRUNNABLE;
-          }
           release(&kt->ktlock);
         }
       }
       release(&p->lock);
-      return 0;
+      return 0; // success
     }
     release(&p->lock);
   }
   return -1;
 }
 
+// Sets the process killed flag to 1
 void
 setkilled(struct proc *p)
 {
@@ -678,6 +667,7 @@ setkilled(struct proc *p)
   release(&p->lock);
 }
 
+// Check the process killed flag
 int
 killed(struct proc *p)
 {
@@ -724,6 +714,8 @@ either_copyin(void *dst, int user_src, uint64 src, uint64 len)
 void
 procdump(void)
 {
+  // Task 2.1 
+  // Remove states for debug ( runnable, running, sleeping)
   static char *states[] = {
   [UNUSED]    "unused",
   [USED]      "used",

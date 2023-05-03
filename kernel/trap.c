@@ -56,7 +56,8 @@ usertrap(void)
     if(killed(p))
       exit(-1);
     
-    //Task 2.3
+    // Task 2.3 
+    // If the system call exit the thread - exit
     if(kt->ktkilled == 1)
       kthread_exit(-1);
 
@@ -80,6 +81,8 @@ usertrap(void)
   if(killed(p))
     exit(-1);
 
+  // Task 2.3 
+  // If the system call exit the thread - exit
   if(kt->ktkilled == 1)
     kthread_exit(-1);
 

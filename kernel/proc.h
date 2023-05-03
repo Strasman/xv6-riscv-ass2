@@ -1,6 +1,7 @@
 #include "kthread.h"
 #include "param.h"
 
+// Task 2.1 Changed to only 3 states
 enum procstate { UNUSED, USED, ZOMBIE };
 
 // Per-process state
