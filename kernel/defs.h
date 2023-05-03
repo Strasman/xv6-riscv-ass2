@@ -116,11 +116,11 @@ void                freekthread(struct kthread *kt);
 struct trapframe*   get_kthread_trapframe(struct proc *p, struct kthread *kt);
 //task 2.3
 int                 the_only_one(struct kthread * t);
-int                 kthread_create(uint64 (start_func)() , uint64 stack,uint stack_size);
+int                 kthread_create(uint64 start_func , uint64 stack,uint stack_size);
 int                 kthread_id(void);
 int                 kthread_kill(int ktid);
 void                kthread_exit(int status);
-int                 kthread_join(int ktid, int* status);
+int                 kthread_join(int ktid, uint64 status);
 
 
 

@@ -54,6 +54,7 @@ procinit(void)
   
   initlock(&wait_lock, "wait_lock");
   initlock(&pid_lock, "nextpid"); // ??
+  initlock(&join, "join");
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
       p->state = UNUSED;
@@ -85,13 +86,15 @@ mycpu(void)
 struct proc*
 myproc(void)
 {
-  struct kthread* kt = mykthread();
-  return kt == 0 ? 0 : kt->proc;
-  //push_off();
-  //struct cpu *c = mycpu();
-  //struct proc *p = kt->proc;
-  //pop_off();
-  //return p;
+  // struct kthread* kt = mykthread();
+  // return kt == 0 ? 0 : kt->proc;
+  push_off();
+  struct cpu *c = mycpu();
+  struct proc *p = 0;
+  if(c->kthread != 0)
+    p = c->kthread->proc;
+  pop_off();
+  return p;
 }
 
 int
@@ -179,8 +182,9 @@ freeproc(struct proc *p)
 
   //Task 2.2
   for(struct kthread* kt = p->kthread; kt<&p->kthread[NKT]; kt++){
-    //aquire ??
+    acquire(&kt->ktlock);
     freekthread(kt);
+    release(&kt->ktlock);
   }
 }
 
@@ -246,7 +250,6 @@ void
 userinit(void)
 {
   struct proc *p;
-
   p = allocproc();
   initproc = p;
   
@@ -306,7 +309,7 @@ fork(void)
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
     freeproc(np);
-    freekthread(&np->kthread[0]); //!!!!!!! maybe over kill because we freed them in freeproc
+    //freekthread(&np->kthread[0]); //!!!!!!! maybe over kill because we freed them in freeproc ??
     release(&np->lock);
     return -1;
   }
@@ -368,15 +371,15 @@ exit(int status)
 {
   struct proc *p = myproc();
   struct kthread *t = mykthread();
-  static int flag = 1;
+  int flag = 1;
 
   //Task 2.3 - wait for all other threads to join (free them)
   // mykthread isn't joining so we'll free him ar the end
   if(flag){
     for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++){
       if (kt != t){
-        int status;
-        kthread_join(kt->ktid, (int *)&status);
+        int status = 1;
+        kthread_join(kt->ktid, (uint64)&status);
       }
     } 
 
@@ -410,9 +413,9 @@ exit(int status)
     release(&p->lock);
     release(&wait_lock);
 
-    acquire(&mykthread()->ktlock);
+    acquire(&t->ktlock);
     //Task 2.3 free our own thread
-    freekthread(mykthread());
+    freekthread(t);
     // Jump into the scheduler, never to return.
     sched();
 
@@ -618,9 +621,9 @@ wakeup(void *chan)
   
   for(p = proc; p < &proc[NPROC]; p++) {
     //if(p != myproc()){
-      //acquire(&p->lock); // ??
+      acquire(&p->lock); // ??
       if(p->state == USED){ // ??
-        //release(&p->lock);// ??
+        release(&p->lock);// ??
         for (kt = p->kthread; kt < &p->kthread[NKT]; kt++) {
           if(kt != mykthread()){
             acquire(&kt->ktlock);
@@ -632,7 +635,7 @@ wakeup(void *chan)
         }
       } // ??
       else{
-        //release(&p->lock);// ??
+        release(&p->lock);// ??
       }
   }
 }

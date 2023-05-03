@@ -135,7 +135,7 @@ exec(char *path, char **argv)
   for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++){
     if (kt != mykthread()){
           int status = 1;
-          kthread_join(kt->ktid, (int *)&status);
+          kthread_join(kt->ktid, (uint64)&status);
         }
   }
 

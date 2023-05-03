@@ -17,14 +17,14 @@ uthread_create(void (*start_func)(), enum sched_priority priority){
             t->state = RUNNABLE;
             t->context.sp = (uint64)t->ustack + STACK_SIZE - sizeof(uint64);
             t->context.ra = (uint64)start_func;
-            t->context.s0 = 0;
-            t->context.s1 = 0;
-            t->context.s2 = 0;
-            t->context.s3 = 0;
-            t->context.s4 = 0;
-            t->context.s5 = 0;
-            t->context.s6 = 0;
-            t->context.s7 = 0;
+            // t->context.s0 = 0;
+            // t->context.s1 = 0;
+            // t->context.s2 = 0;
+            // t->context.s3 = 0;
+            // t->context.s4 = 0;
+            // t->context.s5 = 0;
+            // t->context.s6 = 0;
+            // t->context.s7 = 0;
             
             if(current_thread == 0){
                 current_thread = t;

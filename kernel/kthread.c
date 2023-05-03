@@ -131,7 +131,7 @@ the_only_one(struct kthread * t){
 }
 
 int 
-kthread_create(uint64 (start_func)() , uint64 stack, uint stack_size){
+kthread_create(uint64 start_func , uint64 stack, uint stack_size){
   struct proc* p = myproc();
   struct kthread* kt = allockthread(p);
   if(kt == 0){  
@@ -139,9 +139,9 @@ kthread_create(uint64 (start_func)() , uint64 stack, uint stack_size){
     return -1;
   }
   *(kt->trapframe) = *(mykthread()->trapframe);
+  kt->trapframe->epc = start_func;
+  kt->trapframe->sp = stack + stack_size;
   kt->ktstate = KTRUNNABLE;
-  kt->trapframe->epc = (uint64)start_func;
-  kt->trapframe->sp = (uint64)stack + stack_size;
   release(&kt->ktlock);
   return kt->ktid;
 }
@@ -174,25 +174,40 @@ kthread_kill(int ktid){
 void 
 kthread_exit(int status){
   struct kthread *kt = mykthread();
-  
-  if (the_only_one(kt)){
+  int num_threads = 0;
+  struct proc *p = myproc();
+  struct kthread *t;
+
+  acquire(&p->lock);
+  for(t=p->kthread; t<&p->kthread[NKT]; t++){
+    acquire(&t->ktlock);
+    if((t->ktstate != KTUNUSED && t->ktstate != KTZOMBIE)){
+      num_threads += 1;
+    }
+    release(&t->ktlock);
+  }
+  release(&p->lock);
+
+  if(num_threads == 1){
     exit(status);
   }
-  acquire(&kt->ktlock);
-  kt->ktstate=KTZOMBIE;
-  kt->ktxstate=status;
-  release(&kt->ktlock);
-  wakeup(&kt->ktchan);
-  
-  acquire(&kt->ktlock);
-  // Jump into the scheduler, never to return.
-  sched();
+  else{
+    acquire(&kt->ktlock);
+    kt->ktstate=KTZOMBIE;
+    kt->ktxstate=status;
+    release(&kt->ktlock);
+    wakeup(kt);
+    
+    acquire(&kt->ktlock);
+    // Jump into the scheduler, never to return.
+    sched();
 
-  panic("zombie exit - kthread");
+    panic("zombie exit - kthread");
+  }
 }
 
 int 
-kthread_join(int ktid, int* status){
+kthread_join(int ktid, uint64 status){
   struct kthread *tt;
   struct kthread *waitingfor = 0;
   int otherthreads;
@@ -209,7 +224,7 @@ kthread_join(int ktid, int* status){
         waitingfor = tt;
         otherthreads = 1;
         if(tt->ktstate == KTZOMBIE){
-          if(status != 0 && copyout(p->pagetable, (uint64)status, (char *)&tt->ktxstate,
+          if(status != 0 && copyout(p->pagetable, status, (char *)&tt->ktxstate,
                                   sizeof(tt->ktxstate)) < 0) {
             release(&tt->ktlock);
             release(&p->lock);
