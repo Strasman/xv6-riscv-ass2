@@ -90,7 +90,7 @@ sys_uptime(void)
 }
 
 uint64
-sys_ktrhead_create(void)
+sys_kthread_create(void)
 {
   uint64 pf;
   uint64 ps;
@@ -98,11 +98,11 @@ sys_ktrhead_create(void)
   argaddr(0, &pf);
   argaddr(1, &ps);
   argint(2, &n);
-  return kthread_create(pf, ps, n);
+  return kthread_create((void *)pf, ps, n);
 }
 
 uint64
-sys_ktrhead_id(void)
+sys_kthread_id(void)
 {
   return mykthread()->ktid;
 }
@@ -131,7 +131,7 @@ sys_kthread_join(void)
   uint64 status;
   argint(0, &ktid);
   argaddr(1, &status);
-  return kthread_join(ktid, status);
+  return kthread_join(ktid, (int *)status);
 }
 
 

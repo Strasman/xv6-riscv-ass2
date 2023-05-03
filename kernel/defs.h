@@ -115,11 +115,11 @@ struct kthread*     allockthread(struct proc *);
 void                freekthread(struct kthread *);
 struct trapframe*   get_kthread_trapframe(struct proc *, struct kthread *);
 //task 2.3
-int                 kthread_create( uint64 , uint64,uint);
-int                 kthread_id();
+int                 kthread_create(uint64 (start_func)() , uint64 stack,uint stack_size);
+int                 kthread_id(void);
 int                 kthread_kill(int);
 void                kthread_exit(int);
-int                 kthread_join(int, uint64);
+int                 kthread_join(int, int*);
 int                 the_only_one(struct kthread *);
 
 

@@ -111,7 +111,7 @@ struct trapframe *get_kthread_trapframe(struct proc *p, struct kthread *kt)
 }
 
 //Task 2.3
-int kthread_create( uint64 start_func, uint64 stack, uint stack_size ){
+int kthread_create(uint64 (start_func)() , uint64 stack,uint stack_size){
   struct proc* p = myproc();
   struct kthread* kt = allockthread(p);
   if(kt == 0){  
@@ -119,8 +119,8 @@ int kthread_create( uint64 start_func, uint64 stack, uint stack_size ){
   }
   *(kt->trapframe) = *(mykthread()->trapframe);
   kt->ktstate = KTRUNNABLE;
-  kt->trapframe->epc = start_func;
-  kt->trapframe->sp = stack + stack_size;
+  kt->trapframe->epc = (uint64)start_func;
+  kt->trapframe->sp = (uint64)stack + stack_size;
   release(&kt->ktlock);
   return kt->ktid;
 }
@@ -167,7 +167,7 @@ void kthread_exit(int status){
   panic("zombie exit - kthread");
 }
 
-int kthread_join(int ktid, uint64 status){
+int kthread_join(int ktid, int* status){
   struct kthread *tt;
   struct kthread *waitingfor = 0;
   int otherthreads;
@@ -184,7 +184,7 @@ int kthread_join(int ktid, uint64 status){
         waitingfor = tt;
         otherthreads = 1;
         if(tt->ktstate == KTZOMBIE){
-          if(status != 0 && copyout(p->pagetable, status, (char *)&tt->ktxstate,
+          if(status != 0 && copyout(p->pagetable, (uint64)status, (char *)&tt->ktxstate,
                                   sizeof(tt->ktxstate)) < 0) {
             release(&tt->ktlock);
             release(&p->lock);

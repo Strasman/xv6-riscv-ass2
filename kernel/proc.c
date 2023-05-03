@@ -375,8 +375,8 @@ exit(int status)
   if(flag){
     for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++){
       if (kt != t){
-        int status = 1;
-        kthread_join(kt->ktid, (uint64)&status);
+        int status;
+        kthread_join(kt->ktid, (int *)&status);
       }
     }
 
